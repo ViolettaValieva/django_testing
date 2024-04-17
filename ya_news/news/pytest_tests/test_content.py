@@ -1,44 +1,53 @@
 import pytest
-
 from django.conf import settings
-from django.urls import reverse
 
 from news.forms import CommentForm
 
 
-HOME_URL = reverse('news:home')
+pytestmark = pytest.mark.django_db
 
 
 def test_anonymous_client_has_no_form(client, detail_url):
+    """
+    Тест недоступности анонимному пользователю формы для отправки
+    комментария на странице отдельной новости.
+    """
     response = client.get(detail_url)
     assert 'form' not in response.context
 
 
 def test_authorized_client_has_form(reader_client, detail_url):
+    """
+    Тест доступности авторизованному  пользователю формы для отправки
+    комментария на странице отдельной новости.
+    """
     response = reader_client.get(detail_url)
     assert 'form' in response.context
     assert isinstance(response.context['form'], CommentForm)
 
 
-@pytest.mark.django_db
-def test_news_count(client, all_news):
-    response = client.get(HOME_URL)
+def test_news_count(client, all_news, home_url):
+    """Тест количества новостей на главной странице — не более 10."""
+    response = client.get(home_url)
     object_list = response.context['object_list']
     news_count = object_list.count()
     assert news_count == settings.NEWS_COUNT_ON_HOME_PAGE
 
 
-@pytest.mark.django_db
-def test_news_order(client, all_news):
-    response = client.get(HOME_URL)
+def test_news_order(client, all_news, home_url):
+    """Тест сортировки новостей от самой свежей к самой старой."""
+    response = client.get(home_url)
     object_list = response.context['object_list']
     all_dates = [news.date for news in object_list]
     sorted_dates = sorted(all_dates, reverse=True)
     assert all_dates == sorted_dates
 
 
-@pytest.mark.django_db
 def test_comments_order(client, detail_url, news, comments):
+    """
+    Тест сортировки комментариев на странице
+    отдельной новости в хронологическом порядке.
+    """
     response = client.get(detail_url)
     assert 'news' in response.context
     news = response.context['news']
