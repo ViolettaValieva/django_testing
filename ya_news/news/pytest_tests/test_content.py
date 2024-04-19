@@ -8,19 +8,13 @@ pytestmark = pytest.mark.django_db
 
 
 def test_anonymous_client_has_no_form(client, detail_url):
-    """
-    Тест недоступности анонимному пользователю формы для отправки
-    комментария на странице отдельной новости.
-    """
+    """Тест недоступности анонимному пользователю формы для отправки"""
     response = client.get(detail_url)
     assert 'form' not in response.context
 
 
 def test_authorized_client_has_form(reader_client, detail_url):
-    """
-    Тест доступности авторизованному  пользователю формы для отправки
-    комментария на странице отдельной новости.
-    """
+    """Тест доступности авторизованному  пользователю формы для отправки"""
     response = reader_client.get(detail_url)
     assert 'form' in response.context
     assert isinstance(response.context['form'], CommentForm)
@@ -44,10 +38,7 @@ def test_news_order(client, all_news, home_url):
 
 
 def test_comments_order(client, detail_url, news, comments):
-    """
-    Тест сортировки комментариев на странице
-    отдельной новости в хронологическом порядке.
-    """
+    """Тест сортировки комментариев в хронологическом порядке."""
     response = client.get(detail_url)
     assert 'news' in response.context
     news = response.context['news']

@@ -74,9 +74,10 @@ def comment(author, news):
 
 @pytest.fixture
 def comments(author, news):
-    return Comment.objects.bulk_create(
-        Comment(news=news, author=author, text=f'Текст {index}')
-        for index in range(10))
+    for index in range(10):
+        Comment.objects.create(
+            news=news, author=author, text=f'Текст {index}',
+        )
 
 
 @pytest.fixture

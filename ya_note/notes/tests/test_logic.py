@@ -1,109 +1,75 @@
 from http import HTTPStatus
-
-from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
-from django.urls import reverse
 from pytils.translit import slugify
 
 from notes.forms import WARNING
 from notes.models import Note
+from .base_test import BaseTestCase
+from .constants import ADD_URL, SUCCESS_URL, DELETE_URL, EDIT_URL
 
 
-User = get_user_model()
-
-
-class TestRoutes(TestCase):
-    NOTE_TITLE = 'Заголовок'
-    NOTE_TEXT = 'Текст'
-    NEW_NOTE_TITLE = 'Новый заголовок'
-    NEW_NOTE_TEXT = 'Новый текст'
-    SLUG = "slug"
-    NEW_SLUG = slugify(NEW_NOTE_TITLE)
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.author = User.objects.create(username='Джон Автор')
-        cls.not_author = User.objects.create(username='Джон Авторизованный')
-        cls.author_client = Client()
-        cls.not_author_client = Client()
-        cls.author_client.force_login(cls.author)
-        cls.not_author_client.force_login(cls.not_author)
-        cls.note = Note.objects.create(
-            title=cls.NOTE_TITLE,
-            text=cls.NOTE_TEXT,
-            author=cls.author,
-            slug=cls.SLUG
-        )
-        cls.form_data = {'title': cls.NEW_NOTE_TITLE,
-                         'text': cls.NEW_NOTE_TEXT,
-                         'slug': cls.NEW_SLUG}
-        cls.urls = {
-            'add': reverse('notes:add'),
-            'success': reverse('notes:success'),
-            'edit': reverse('notes:edit', args=(cls.SLUG,)),
-            'delete': reverse('notes:delete', args=(cls.SLUG,)),
-        }
+class TestRoutes(BaseTestCase):
 
     def test_user_can_create_note(self):
         """Тест возможности залогиненного пользователя создавать заметку."""
         Note.objects.all().delete()
-        self.assertEqual(Note.objects.count(), 0)
-        response = self.author_client.post(self.urls['add'],
+        response = self.author_client.post(ADD_URL,
                                            data=self.form_data)
-        self.assertRedirects(response, self.urls['success'],
+        self.assertRedirects(response, SUCCESS_URL,
                              fetch_redirect_response=False)
         self.assertEqual(Note.objects.count(), 1)
         created_note = Note.objects.get()
-        self.assertEqual(created_note.title, self.NEW_NOTE_TITLE)
-        self.assertEqual(created_note.text, self.NEW_NOTE_TEXT)
+        self.assertEqual(created_note.title, self.form_data['title'])
+        self.assertEqual(created_note.text, self.form_data['text'])
         self.assertEqual(created_note.author, self.author)
-        self.assertEqual(created_note.slug, self.NEW_SLUG)
+        self.assertEqual(created_note.slug, self.form_data['slug'])
 
     def test_anonymous_user_cant_create_note(self):
         """Тест невозможности анонимного пользователя создавать заметку."""
         initial_notes_count = Note.objects.count()
-        self.client.post(self.urls['add'], data=self.form_data)
+        self.client.post(ADD_URL, data=self.form_data)
         self.assertEqual(initial_notes_count, Note.objects.count())
 
     def test_author_can_delete_note(self):
         """Тест возможности пользователя удалять свою заметку."""
         initial_notes_count = Note.objects.count()
-        response = self.author_client.delete(self.urls['delete'])
-        self.assertRedirects(response, self.urls['success'])
+        response = self.author_client.delete(DELETE_URL)
+        self.assertRedirects(response, SUCCESS_URL)
         self.assertEqual(initial_notes_count - 1, Note.objects.count())
 
     def test_other_user_cant_delete_note(self):
         """Тест невозможности пользователя удалять чужую заметку."""
         initial_notes_count = Note.objects.count()
-        response = self.not_author_client.delete(self.urls['delete'])
+        response = self.not_author_client.delete(DELETE_URL)
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         self.assertEqual(initial_notes_count, Note.objects.count())
 
     def test_author_can_edit_note(self):
         """Тест возможности пользователя редактировать свою заметку"""
-        self.assertEqual(Note.objects.count(), 1)
-        response = self.author_client.post(self.urls['edit'], self.form_data)
-        self.assertRedirects(response, self.urls['success'])
+        initial_notes_count = Note.objects.count()
+        response = self.author_client.post(EDIT_URL, self.form_data)
+        self.assertRedirects(response, SUCCESS_URL)
+        self.assertEqual(initial_notes_count, Note.objects.count())
         new_note = Note.objects.get()
-        self.assertEqual(new_note.title, self.NEW_NOTE_TITLE)
-        self.assertEqual(new_note.text, self.NEW_NOTE_TEXT)
-        self.assertEqual(new_note.slug, self.NEW_SLUG)
+        self.assertEqual(new_note.title, self.form_data['title'])
+        self.assertEqual(new_note.text, self.form_data['text'])
+        self.assertEqual(new_note.slug, self.form_data['slug'])
+        self.assertEqual(new_note.author, self.author)
 
     def test_user_cant_edit_comment_of_another_user(self):
         """Тест невозможности пользователя редактировать чужую заметку."""
-        self.assertEqual(Note.objects.count(), 1)
-        response = self.not_author_client.post(self.urls['edit'],
-                                               self.form_data)
+        initial_notes_count = Note.objects.count()
+        response = self.not_author_client.post(EDIT_URL, self.form_data)
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        self.assertEqual(initial_notes_count, Note.objects.count())
         new_note = Note.objects.get()
-        self.assertNotEqual(new_note.title, self.NEW_NOTE_TITLE)
-        self.assertNotEqual(new_note.text, self.NEW_NOTE_TEXT)
-        self.assertNotEqual(new_note.slug, self.NEW_SLUG)
+        self.assertNotEqual(new_note.title, self.form_data['title'])
+        self.assertNotEqual(new_note.text, self.form_data['text'])
+        self.assertNotEqual(new_note.slug, self.form_data['slug'])
 
     def test_not_unique_slug(self):
         """Тест невозможности создания двух заметок с одинаковым slug."""
         initial_notes_count = Note.objects.count()
-        response = self.author_client.post(self.urls['add'], data={
+        response = self.author_client.post(ADD_URL, data={
             'title': self.form_data['title'],
             'text': self.form_data['text'],
             'slug': self.note.slug
@@ -117,19 +83,14 @@ class TestRoutes(TestCase):
         self.assertEqual(initial_notes_count, Note.objects.count())
 
     def test_empty_slug(self):
-        """
-        Тест автоматического формирования slug,
-        если при создании заметки он не заполнен.
-        """
+        """Тест автоматического формирования slug, если он не заполнен."""
         Note.objects.all().delete()
-        self.assertEqual(Note.objects.count(), 0)
-        response = self.author_client.post(self.urls['add'], data={
-            'title': self.form_data['title'],
-            'text': self.form_data['text'],
-        })
-        self.assertRedirects(response, self.urls['success'])
+        self.form_data.pop('slug')
+        response = self.author_client.post(ADD_URL, data=self.form_data)
+        self.assertRedirects(response, SUCCESS_URL)
         self.assertEqual(Note.objects.count(), 1)
         new_note = Note.objects.get()
         self.assertEqual(new_note.title, self.form_data['title'])
         self.assertEqual(new_note.text, self.form_data['text'])
-        self.assertEqual(new_note.slug, self.form_data['slug'])
+        self.assertEqual(new_note.slug, slugify(self.form_data['title']))
+        self.assertEqual(new_note.author, self.author)
