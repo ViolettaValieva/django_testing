@@ -10,7 +10,7 @@ from .constants import (
     HOME_URL,
     LIST_URL,
     LOGIN_URL,
-    LOGOUT_URL, 
+    LOGOUT_URL,
     NEW_NOTE_TEXT,
     NEW_NOTE_TITLE,
     NEW_SLUG,
