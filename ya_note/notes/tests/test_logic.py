@@ -62,10 +62,10 @@ class TestRoutes(BaseTestCase):
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         self.assertEqual(initial_notes_count, Note.objects.count())
         new_note = Note.objects.get()
-        self.assertNotEqual(new_note.title, self.form_data['title'])
-        self.assertNotEqual(new_note.text, self.form_data['text'])
-        self.assertNotEqual(new_note.slug, self.form_data['slug'])
-        self.assertNotEqual(new_note.author, self.not_author)
+        self.assertEqual(new_note.title, self.note.title)
+        self.assertEqual(new_note.text, self.note.text)
+        self.assertEqual(new_note.slug, self.note.slug)
+        self.assertEqual(new_note.author, self.note.author)
 
     def test_not_unique_slug(self):
         """Тест невозможности создания двух заметок с одинаковым slug."""
