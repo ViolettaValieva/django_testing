@@ -14,7 +14,7 @@ class TestRoutes(BaseTestCase):
         note = object_list.get()
         self.assertEqual(note.title, self.note.title)
         self.assertEqual(note.text, self.note.text)
-        self.assertEqual(note.author, self.author)
+        self.assertEqual(note.author, self.note.author)
         self.assertEqual(note.slug, self.note.slug)
 
     def test_note_not_in_list_for_another_user(self):

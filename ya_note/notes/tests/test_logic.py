@@ -53,7 +53,7 @@ class TestRoutes(BaseTestCase):
         self.assertEqual(new_note.title, self.form_data['title'])
         self.assertEqual(new_note.text, self.form_data['text'])
         self.assertEqual(new_note.slug, self.form_data['slug'])
-        self.assertEqual(new_note.author, self.author)
+        self.assertEqual(new_note.author, self.note.author)
 
     def test_user_cant_edit_comment_of_another_user(self):
         """Тест невозможности пользователя редактировать чужую заметку."""
@@ -65,6 +65,7 @@ class TestRoutes(BaseTestCase):
         self.assertNotEqual(new_note.title, self.form_data['title'])
         self.assertNotEqual(new_note.text, self.form_data['text'])
         self.assertNotEqual(new_note.slug, self.form_data['slug'])
+        self.assertNotEqual(new_note.author, self.not_author)
 
     def test_not_unique_slug(self):
         """Тест невозможности создания двух заметок с одинаковым slug."""

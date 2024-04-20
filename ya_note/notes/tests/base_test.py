@@ -10,6 +10,7 @@ from .constants import (
     HOME_URL,
     LIST_URL,
     LOGIN_URL,
+    LOGOUT_URL, 
     NEW_NOTE_TEXT,
     NEW_NOTE_TITLE,
     NEW_SLUG,
@@ -50,7 +51,7 @@ class BaseTestCase(TestCase):
             EDIT_URL,
             DELETE_URL,
             LOGIN_URL,
-            LIST_URL,
+            LOGOUT_URL,
             SIGNUP_URL
         )
         cls.form_data = {'title': NEW_NOTE_TITLE,
